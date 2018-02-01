@@ -6,7 +6,7 @@ from os.path import expanduser, exists
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 from keras.models import Model
-from keras.layers import Input, TimeDistributed, Dense, Lambda, concatenate, Dropout, BatchNormalization
+from keras.layers import Input, LSTM, TimeDistributed, Dense, Lambda, concatenate, Dropout, BatchNormalization
 from keras.layers.embeddings import Embedding
 from keras.regularizers import l2
 from keras.callbacks import Callback, ModelCheckpoint
@@ -135,16 +135,18 @@ q1 = Embedding(nb_words + 1,
                  weights=[word_embedding_matrix], 
                  input_length=MAX_SEQUENCE_LENGTH, 
                  trainable=False)(question1)
-q1 = TimeDistributed(Dense(EMBEDDING_DIM, activation='relu'))(q1)
-q1 = Lambda(lambda x: K.max(x, axis=1), output_shape=(EMBEDDING_DIM, ))(q1)
+#q1 = TimeDistributed(Dense(EMBEDDING_DIM, activation='relu'))(q1)
+#q1 = Lambda(lambda x: K.max(x, axis=1), output_shape=(EMBEDDING_DIM, ))(q1)
+q1 = LSTM(128)(q1)
 
 q2 = Embedding(nb_words + 1, 
                  EMBEDDING_DIM, 
                  weights=[word_embedding_matrix], 
                  input_length=MAX_SEQUENCE_LENGTH, 
                  trainable=False)(question2)
-q2 = TimeDistributed(Dense(EMBEDDING_DIM, activation='relu'))(q2)
-q2 = Lambda(lambda x: K.max(x, axis=1), output_shape=(EMBEDDING_DIM, ))(q2)
+#q2 = TimeDistributed(Dense(EMBEDDING_DIM, activation='relu'))(q2)
+#q2 = Lambda(lambda x: K.max(x, axis=1), output_shape=(EMBEDDING_DIM, ))(q2)
+q2 = LSTM(128)(q2)
 
 merged = concatenate([q1,q2])
 merged = Dense(200, activation='relu')(merged)
