@@ -20,7 +20,7 @@ QUESTION_PAIRS_FILE_URL = 'http://qim.ec.quoracdn.net/quora_duplicate_questions.
 QUESTION_PAIRS_FILE = 'quora_duplicate_questions.tsv'
 GLOVE_ZIP_FILE_URL = 'http://nlp.stanford.edu/data/glove.840B.300d.zip'
 GLOVE_ZIP_FILE = 'glove.840B.300d.zip'
-GLOVE_FILE = 'glove.840B.300d.txt'
+GLOVE_FILE = 'wordvec.txt'
 Q1_TRAINING_DATA_FILE = 'q1_train.npy'
 Q2_TRAINING_DATA_FILE = 'q2_train.npy'
 LABEL_TRAINING_DATA_FILE = 'label_train.npy'
@@ -77,14 +77,10 @@ else:
     print("Words in index: %d" % len(word_index))
 
     # Download and process GloVe embeddings
-    if not exists(KERAS_DATASETS_DIR + GLOVE_ZIP_FILE):
-        zipfile = ZipFile(get_file(GLOVE_ZIP_FILE, GLOVE_ZIP_FILE_URL))
-        zipfile.extract(GLOVE_FILE, path=KERAS_DATASETS_DIR)
-
     print("Processing", GLOVE_FILE)
 
     embeddings_index = {}
-    with open(KERAS_DATASETS_DIR + GLOVE_FILE, encoding='utf-8') as f:
+    with open(GLOVE_FILE, encoding='utf-8') as f:
         for line in f:
             values = line.split(' ')
             word = values[0]
@@ -110,14 +106,14 @@ else:
     q2_data = pad_sequences(question2_word_sequences, maxlen=MAX_SEQUENCE_LENGTH)
     labels = np.array(is_duplicate, dtype=int)
     print('Shape of question1 data tensor:', q1_data.shape)
-    print('Shape of question2 data tensor:', q2_data.shape)
+
     print('Shape of label tensor:', labels.shape)
 
     # Persist training and configuration data to files
-    np.save(open(Q1_TRAINING_DATA_FILE, 'wb'), q1_data)
-    np.save(open(Q2_TRAINING_DATA_FILE, 'wb'), q2_data)
-    np.save(open(LABEL_TRAINING_DATA_FILE, 'wb'), labels)
-    np.save(open(WORD_EMBEDDING_MATRIX_FILE, 'wb'), word_embedding_matrix)
+    np.save(Q1_TRAINING_DATA_FILE, q1_data)
+    np.save(Q2_TRAINING_DATA_FILE, q2_data)
+    np.save(LABEL_TRAINING_DATA_FILE, labels)
+    np.save(WORD_EMBEDDING_MATRIX_FILE, word_embedding_matrix)
     with open(NB_WORDS_DATA_FILE, 'w') as f:
         json.dump({'nb_words': nb_words}, f)
 
