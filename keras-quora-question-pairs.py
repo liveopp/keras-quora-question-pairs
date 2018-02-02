@@ -30,6 +30,7 @@ NB_WORDS_DATA_FILE = 'nb_words.json'
 MAX_NB_WORDS = 200000
 MAX_SEQUENCE_LENGTH = 25
 EMBEDDING_DIM = 300
+SENTENCE_DIM = 128
 MODEL_WEIGHTS_FILE = 'question_pairs_weights.h5'
 VALIDATION_SPLIT = 0.1
 TEST_SPLIT = 0.1
@@ -137,8 +138,8 @@ q1 = Embedding(nb_words + 1,
                  input_length=MAX_SEQUENCE_LENGTH, 
                  trainable=False)(question1)
 #q1 = TimeDistributed(Dense(EMBEDDING_DIM, activation='relu'))(q1)
-#q1 = Lambda(lambda x: K.max(x, axis=1), output_shape=(EMBEDDING_DIM, ))(q1)
-q1 = Bidirectional(LSTM(128))(q1)
+q1 = Bidirectional(LSTM(SENTENCE_DIM, return_sequences=True), merge_mode='sum')(q1)
+q1 = Lambda(lambda x: K.max(x, axis=1), output_shape=(SENTENCE_DIM, ))(q1)
 
 q2 = Embedding(nb_words + 1, 
                  EMBEDDING_DIM, 
@@ -146,10 +147,10 @@ q2 = Embedding(nb_words + 1,
                  input_length=MAX_SEQUENCE_LENGTH, 
                  trainable=False)(question2)
 #q2 = TimeDistributed(Dense(EMBEDDING_DIM, activation='relu'))(q2)
-#q2 = Lambda(lambda x: K.max(x, axis=1), output_shape=(EMBEDDING_DIM, ))(q2)
-q2 = Bidirectional(LSTM(128))(q2)
+q2 = Bidirectional(LSTM(SENTENCE_DIM, return_sequences=True), merge_mode='sum')(q2)
+q2 = Lambda(lambda x: K.max(x, axis=1), output_shape=(SENTENCE_DIM, ))(q2)
 
-distance = K.abs(Subtract()([q1, q2]))
+distance = Subtract()([q1, q2])
 angle = Multiply()([q1, q2])
 
 merged = concatenate([distance, angle])
