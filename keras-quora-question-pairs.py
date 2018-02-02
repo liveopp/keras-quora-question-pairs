@@ -139,7 +139,7 @@ q1 = Embedding(nb_words + 1,
                  trainable=False)(question1)
 #q1 = TimeDistributed(Dense(EMBEDDING_DIM, activation='relu'))(q1)
 q1 = Bidirectional(LSTM(SENTENCE_DIM, return_sequences=True), merge_mode='concat')(q1)
-q1 = Lambda(lambda x: K.max(x, axis=1), output_shape=(SENTENCE_DIM, ))(q1)
+q1 = Lambda(lambda x: K.max(x, axis=1), output_shape=(2*SENTENCE_DIM, ))(q1)
 
 q2 = Embedding(nb_words + 1, 
                  EMBEDDING_DIM, 
@@ -148,7 +148,7 @@ q2 = Embedding(nb_words + 1,
                  trainable=False)(question2)
 #q2 = TimeDistributed(Dense(EMBEDDING_DIM, activation='relu'))(q2)
 q2 = Bidirectional(LSTM(SENTENCE_DIM, return_sequences=True), merge_mode='concat')(q2)
-q2 = Lambda(lambda x: K.max(x, axis=1), output_shape=(SENTENCE_DIM, ))(q2)
+q2 = Lambda(lambda x: K.max(x, axis=1), output_shape=(2*SENTENCE_DIM, ))(q2)
 
 distance = Subtract()([q1, q2])
 angle = Multiply()([q1, q2])
