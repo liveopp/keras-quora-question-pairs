@@ -6,7 +6,7 @@ from os.path import expanduser, exists
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 from keras.models import Model
-from keras.layers import Input, LSTM, TimeDistributed, Dense,\
+from keras.layers import Input, LSTM, CuDNNLSTM, TimeDistributed, Dense,\
     Bidirectional, Lambda, Multiply, Subtract, concatenate, Dropout, BatchNormalization
 from keras.layers.embeddings import Embedding
 from keras.regularizers import l2
@@ -43,6 +43,7 @@ DROPOUT = 0.1
 BATCH_SIZE = 32
 OPTIMIZER = 'adam'
 IS_DUMP = False
+USE_CUDA = True
 
 
 def read_test_csv(fname):
@@ -199,7 +200,10 @@ q1 = Embedding(nb_words + 1,
                  input_length=MAX_SEQUENCE_LENGTH, 
                  trainable=True)(question1)
 #q1 = TimeDistributed(Dense(EMBEDDING_DIM, activation='relu'))(q1)
-q1 = Bidirectional(LSTM(SENTENCE_DIM, return_sequences=True), merge_mode='sum')(q1)
+if USE_CUDA:
+    q1 = Bidirectional(CuDNNLSTM(SENTENCE_DIM, return_sequences=True), merge_mode='sum')(q1)
+else:
+    q1 = Bidirectional(LSTM(SENTENCE_DIM, return_sequences=True), merge_mode='sum')(q1)
 q1 = Lambda(lambda x: K.max(x, axis=1), output_shape=(SENTENCE_DIM, ))(q1)
 
 q2 = Embedding(nb_words + 1, 
@@ -208,7 +212,10 @@ q2 = Embedding(nb_words + 1,
                  input_length=MAX_SEQUENCE_LENGTH, 
                  trainable=True)(question2)
 #q2 = TimeDistributed(Dense(EMBEDDING_DIM, activation='relu'))(q2)
-q2 = Bidirectional(LSTM(SENTENCE_DIM, return_sequences=True), merge_mode='sum')(q2)
+if USE_CUDA:
+    q2 = Bidirectional(CuDNNLSTM(SENTENCE_DIM, return_sequences=True), merge_mode='sum')(q2)
+else:
+    q2 = Bidirectional(LSTM(SENTENCE_DIM, return_sequences=True), merge_mode='sum')(q2)
 q2 = Lambda(lambda x: K.max(x, axis=1), output_shape=(SENTENCE_DIM, ))(q2)
 
 distance = Subtract()([q1, q2])
