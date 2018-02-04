@@ -52,7 +52,7 @@ def read_test_csv(fname):
         num = 0
         for line in f:
             line = line.strip()
-            if line.find(',') > 0 and int(line.split(',')[0]) == num:
+            if line.find(',') > 0 and line.split(',')[0] == str(num):
                 if whole_line:
                     q1_idx = whole_line.find('"')
                     q2_idx = whole_line.find('","')
