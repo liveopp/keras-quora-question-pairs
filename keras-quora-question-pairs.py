@@ -52,7 +52,11 @@ def read_test_csv(fname):
             q1_idx = line.find('"')
             q2_idx = line.find('","')
             while line[q2_idx-1] == '"':
-                q2_idx = line.find('","', q2_idx+2)
+                if line.find('","', q2_idx+2) > 0:
+                    q2_idx = line.find('","', q2_idx+2)
+                    print(len(q1)+2)
+                else:
+                    break
             q1.append(line[q1_idx+1:q2_idx])
             q2.append(line[q2_idx+3:-1])
     return q1, q2
