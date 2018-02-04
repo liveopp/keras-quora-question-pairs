@@ -49,7 +49,7 @@ def read_test_csv(fname):
     with open(fname, 'r') as f:
         f.readline()
         whole_line = ''
-        num = 0
+        num = 1
         for line in f:
             line = line.strip()
             if line.find(',') > 0 and line.split(',')[0] == str(num):
