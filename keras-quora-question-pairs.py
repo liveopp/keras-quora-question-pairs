@@ -22,7 +22,7 @@ QUESTION_PAIRS_FILE = 'quora_duplicate_questions.tsv'
 TEST_QUESTION_PAIRS_FILE = 'test.csv'
 GLOVE_ZIP_FILE_URL = 'http://nlp.stanford.edu/data/glove.840B.300d.zip'
 GLOVE_ZIP_FILE = 'glove.840B.300d.zip'
-GLOVE_FILE = 'wordvec.txt'
+GLOVE_FILE = 'glove.840B.300d.txt'
 Q1_TRAINING_DATA_FILE = 'q1_train.npy'
 Q2_TRAINING_DATA_FILE = 'q2_train.npy'
 Q1_TEST_DATA_FILE = 'q1_test.npy'
@@ -42,6 +42,7 @@ NB_EPOCHS = 25
 DROPOUT = 0.1
 BATCH_SIZE = 32
 OPTIMIZER = 'adam'
+IS_DUMP = False
 
 
 def read_test_csv(fname):
@@ -78,7 +79,7 @@ def read_test_csv(fname):
                 break
         q1.append(whole_line[q1_idx+1:q2_idx])
         q2.append(whole_line[q2_idx+3:-1])
-        assert num == 2345795
+        assert num == 2345796
     return q1, q2
 
 
@@ -148,7 +149,7 @@ else:
 
     # Prepare word embedding matrix
     nb_words = min(MAX_NB_WORDS, len(word_index))
-    word_embedding_matrix = np.zeros((nb_words + 1, EMBEDDING_DIM))
+    word_embedding_matrix = np.random.random_sample((nb_words + 1, EMBEDDING_DIM))
     for word, i in word_index.items():
         if i > MAX_NB_WORDS:
             continue
@@ -179,13 +180,14 @@ else:
         json.dump({'nb_words': nb_words}, f)
 
 # Partition the dataset into train and test sets
-X_train = np.stack((q1_data, q2_data), axis=1)
-y_train = labels
-X_test = np.stack((q1_test, q2_test), axis=1)
-Q1_train = X_train[:, 0]
-Q2_train = X_train[:, 1]
-Q1_test = X_test[:, 0]
-Q2_test = X_test[:, 1]
+X = np.stack((q1_data, q2_data), axis=1)
+y = labels
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=TEST_SPLIT, random_state=RNG_SEED)
+Q1_train = X_train[:,0]
+Q2_train = X_train[:,1]
+_X_test = np.stack((q1_test, q2_test), axis=1)
+Q1_test = _X_test[:, 0]
+Q2_test = _X_test[:, 1]
 
 # Define the model
 question1 = Input(shape=(MAX_SEQUENCE_LENGTH,))
@@ -195,7 +197,7 @@ q1 = Embedding(nb_words + 1,
                  EMBEDDING_DIM, 
                  weights=[word_embedding_matrix], 
                  input_length=MAX_SEQUENCE_LENGTH, 
-                 trainable=False)(question1)
+                 trainable=True)(question1)
 #q1 = TimeDistributed(Dense(EMBEDDING_DIM, activation='relu'))(q1)
 q1 = Bidirectional(LSTM(SENTENCE_DIM, return_sequences=True), merge_mode='sum')(q1)
 q1 = Lambda(lambda x: K.max(x, axis=1), output_shape=(SENTENCE_DIM, ))(q1)
@@ -204,7 +206,7 @@ q2 = Embedding(nb_words + 1,
                  EMBEDDING_DIM, 
                  weights=[word_embedding_matrix], 
                  input_length=MAX_SEQUENCE_LENGTH, 
-                 trainable=False)(question2)
+                 trainable=True)(question2)
 #q2 = TimeDistributed(Dense(EMBEDDING_DIM, activation='relu'))(q2)
 q2 = Bidirectional(LSTM(SENTENCE_DIM, return_sequences=True), merge_mode='sum')(q2)
 q2 = Lambda(lambda x: K.max(x, axis=1), output_shape=(SENTENCE_DIM, ))(q2)
@@ -252,15 +254,15 @@ print('Maximum validation accuracy = {0:.4f} (epoch {1:d})'.format(max_val_acc, 
 
 # Evaluate the model with best validation accuracy on the test partition
 model.load_weights(MODEL_WEIGHTS_FILE)
-y_test = model.predict([Q1_test, Q2_test])
-y_pred = np.asarray(y_test.flatten() > 0.5, dtype=int)
 
-print('Start dump test prediction')
+if IS_DUMP:
+    y_pred = model.predict([Q1_test, Q2_test])
+    print('Start dump test prediction')
 
-with open('submission.csv', 'w') as f:
-    f.write('test_id,is_duplicate\n')
-    for i, _y in enumerate(y_pred):
-        f.write('{},{}\n'.format(i, _y))
-#loss, accuracy = model.evaluate([Q1_test, Q2_test], y_test, verbose=0)
-#print('Test loss = {0:.4f}, test accuracy = {1:.4f}'.format(loss, accuracy))
+    with open('submission.csv', 'w') as f:
+        f.write('test_id,is_duplicate\n')
+        for i, _y in enumerate(y_pred.flatten()):
+            f.write('{},{}\n'.format(i, _y))
+loss, accuracy = model.evaluate([Q1_test, Q2_test], y_test, verbose=0)
+print('Test loss = {0:.4f}, test accuracy = {1:.4f}'.format(loss, accuracy))
 
