@@ -7,7 +7,8 @@ from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
 from keras.models import Model
 from keras.layers import Input, LSTM, CuDNNLSTM, TimeDistributed, Dense,\
-    Bidirectional, Lambda, Multiply, Subtract, concatenate, Dropout, BatchNormalization
+    Bidirectional, Lambda, Multiply, Subtract, concatenate, Dropout,\
+    BatchNormalization, Flatten
 from keras.layers.embeddings import Embedding
 from keras.regularizers import l2
 from keras.callbacks import Callback, ModelCheckpoint
@@ -35,10 +36,11 @@ MAX_SEQUENCE_LENGTH = 25
 EMBEDDING_DIM = 300
 SENTENCE_DIM = 100
 MODEL_WEIGHTS_FILE = 'question_pairs_weights.h5'
+MODEL_JSON_FILE = 'question_pairs.json'
 VALIDATION_SPLIT = 0.1
 TEST_SPLIT = 0.1
 RNG_SEED = 13371447
-NB_EPOCHS = 15
+NB_EPOCHS = 10
 DROPOUT = 0.1
 BATCH_SIZE = 60
 OPTIMIZER = 'adam'
@@ -187,8 +189,10 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=TEST_SPLIT, 
 Q1_train = X_train[:,0]
 Q2_train = X_train[:,1]
 _X_test = np.stack((q1_test, q2_test), axis=1)
-Q1_test = _X_test[:, 0]
-Q2_test = _X_test[:, 1]
+_Q1_test = _X_test[:, 0]
+_Q2_test = _X_test[:, 1]
+Q1_test = X_test[:, 0]
+Q2_test = X_test[:, 1]
 
 # Define the model
 question1 = Input(shape=(MAX_SEQUENCE_LENGTH,))
@@ -201,10 +205,11 @@ q1 = Embedding(nb_words + 1,
                  trainable=False)(question1)
 #q1 = TimeDistributed(Dense(EMBEDDING_DIM, activation='relu'))(q1)
 if USE_CUDA:
-    q1 = Bidirectional(CuDNNLSTM(SENTENCE_DIM, return_sequences=False), merge_mode='concat')(q1)
+    q1 = Bidirectional(CuDNNLSTM(SENTENCE_DIM, return_sequences=True))(q1)
 else:
-    q1 = Bidirectional(LSTM(SENTENCE_DIM, return_sequences=True), merge_mode='sum')(q1)
-#q1 = Lambda(lambda x: K.max(x, axis=1), output_shape=(SENTENCE_DIM, ))(q1)
+    q1 = Bidirectional(LSTM(SENTENCE_DIM, return_sequences=True))(q1)
+#q1 = Lambda(lambda x: K.mean(x, axis=1), output_shape=(2*SENTENCE_DIM, ))(q1)
+q1 = Flatten()(q1)
 
 q2 = Embedding(nb_words + 1,
                EMBEDDING_DIM,
@@ -213,27 +218,28 @@ q2 = Embedding(nb_words + 1,
                trainable=False)(question2)
 #q2 = TimeDistributed(Dense(EMBEDDING_DIM, activation='relu'))(q2)
 if USE_CUDA:
-    q2 = Bidirectional(CuDNNLSTM(SENTENCE_DIM, return_sequences=False), merge_mode='concat')(q2)
+    q2 = Bidirectional(CuDNNLSTM(SENTENCE_DIM, return_sequences=True))(q2)
 else:
-    q2 = Bidirectional(LSTM(SENTENCE_DIM, return_sequences=True), merge_mode='sum')(q2)
-#q2 = Lambda(lambda x: K.max(x, axis=1), output_shape=(SENTENCE_DIM, ))(q2)
+    q2 = Bidirectional(LSTM(SENTENCE_DIM, return_sequences=True))(q2)
+#q2 = Lambda(lambda x: K.mean(x, axis=1), output_shape=(2*SENTENCE_DIM, ))(q2)
+q2 = Flatten()(q2)
 
-distance = Subtract()([q1, q2])
+distance = Lambda(lambda x: K.abs(x))(Subtract()([q1, q2]))
 angle = Multiply()([q1, q2])
 
 merged = concatenate([distance, angle])
 merged = Dense(200, activation='relu')(merged)
 merged = Dropout(DROPOUT)(merged)
 merged = BatchNormalization()(merged)
-merged = Dense(200, activation='relu')(merged)
-merged = Dropout(DROPOUT)(merged)
-merged = BatchNormalization()(merged)
-merged = Dense(200, activation='relu')(merged)
-merged = Dropout(DROPOUT)(merged)
-merged = BatchNormalization()(merged)
-merged = Dense(200, activation='relu')(merged)
-merged = Dropout(DROPOUT)(merged)
-merged = BatchNormalization()(merged)
+#merged = Dense(200, activation='relu')(merged)
+#merged = Dropout(DROPOUT)(merged)
+#merged = BatchNormalization()(merged)
+#merged = Dense(200, activation='relu')(merged)
+#merged = Dropout(DROPOUT)(merged)
+#merged = BatchNormalization()(merged)
+#merged = Dense(200, activation='relu')(merged)
+#merged = Dropout(DROPOUT)(merged)
+#merged = BatchNormalization()(merged)
 
 is_duplicate = Dense(1, activation='sigmoid')(merged)
 
@@ -260,10 +266,13 @@ max_val_acc, idx = max((val, idx) for (idx, val) in enumerate(history.history['v
 print('Maximum validation accuracy = {0:.4f} (epoch {1:d})'.format(max_val_acc, idx+1))
 
 # Evaluate the model with best validation accuracy on the test partition
+model_json = model.to_json()
+with open(MODEL_JSON_FILE, 'w') as json_file:
+    json_file.write(model_json)
 model.load_weights(MODEL_WEIGHTS_FILE)
 
 if IS_DUMP:
-    y_pred = model.predict([Q1_test, Q2_test])
+    y_pred = model.predict([_Q1_test, _Q2_test])
     print('Start dump test prediction')
 
     with open('submission.csv', 'w') as f:
