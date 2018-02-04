@@ -233,9 +233,13 @@ print('Maximum validation accuracy = {0:.4f} (epoch {1:d})'.format(max_val_acc, 
 # Evaluate the model with best validation accuracy on the test partition
 model.load_weights(MODEL_WEIGHTS_FILE)
 y_test = model.predict([Q1_test, Q2_test])
+y_pred = np.asarray(y_test.flatten() > 0.5, dtype=int)
+
+print('Start dump test prediction')
+
 with open('submission.csv', 'w') as f:
     f.write('test_id,is_duplicate\n')
-    for i, _y in enumerate(y_test):
+    for i, _y in enumerate(y_pred):
         f.write('{},{}\n'.format(i, _y))
 #loss, accuracy = model.evaluate([Q1_test, Q2_test], y_test, verbose=0)
 #print('Test loss = {0:.4f}, test accuracy = {1:.4f}'.format(loss, accuracy))
