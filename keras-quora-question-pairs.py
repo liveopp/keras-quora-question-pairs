@@ -22,13 +22,13 @@ QUESTION_PAIRS_FILE = 'quora_duplicate_questions.tsv'
 TEST_QUESTION_PAIRS_FILE = 'test.csv'
 GLOVE_ZIP_FILE_URL = 'http://nlp.stanford.edu/data/glove.840B.300d.zip'
 GLOVE_ZIP_FILE = 'glove.840B.300d.zip'
-GLOVE_FILE = 'glove.840B.300d.txt'
+GLOVE_FILE = 'wordvec.txt'
 Q1_TRAINING_DATA_FILE = 'q1_train.npy'
 Q2_TRAINING_DATA_FILE = 'q2_train.npy'
 Q1_TEST_DATA_FILE = 'q1_test.npy'
 Q2_TEST_DATA_FILE = 'q2_test.npy'
 LABEL_TRAINING_DATA_FILE = 'label_train.npy'
-WORD_EMBEDDING_MATRIX_FILE = 'word_embedding_matrix.npy'
+WORD_EMBEDDING_MATRIXFILE = 'word_embedding_matrix.npy'
 NB_WORDS_DATA_FILE = 'nb_words.json'
 MAX_NB_WORDS = 200000
 MAX_SEQUENCE_LENGTH = 25
@@ -48,8 +48,7 @@ def read_test_csv(fname):
     q1, q2 = [], []
     with open(fname, 'r') as f:
         f.readline()
-        while f.readable():
-            line = f.readline()
+        for line in f:
             q1_idx = line.find('"')
             q2_idx = line.find('","')
             while line[q2_idx-1] == '"':
@@ -92,7 +91,9 @@ else:
 
     print('Train question pairs: %d' % len(question1))
 
-    test_q1, test_q2 = read_test_csv('test.csv')
+    print("Processing", TEST_QUESTION_PAIRS_FILE)
+
+    test_q1, test_q2 = read_test_csv(TEST_QUESTION_PAIRS_FILE)
 
     print('Test question pairs: %d' % len(test_q1))
 
