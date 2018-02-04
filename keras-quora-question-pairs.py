@@ -48,17 +48,37 @@ def read_test_csv(fname):
     q1, q2 = [], []
     with open(fname, 'r') as f:
         f.readline()
+        whole_line = ''
+        num = 0
         for line in f:
-            q1_idx = line.find('"')
-            q2_idx = line.find('","')
-            while line[q2_idx-1] == '"':
-                if line.find('","', q2_idx+2) > 0:
-                    q2_idx = line.find('","', q2_idx+2)
-                    print(len(q1)+2)
-                else:
-                    break
-            q1.append(line[q1_idx+1:q2_idx])
-            q2.append(line[q2_idx+3:-1])
+            line = line.strip()
+            if line.find(',') > 0 and int(line.split(',')[0]) == num:
+                if whole_line:
+                    q1_idx = whole_line.find('"')
+                    q2_idx = whole_line.find('","')
+                    while whole_line[q2_idx-1] == '"':
+                        if whole_line.find('","', q2_idx+2) > 0:
+                            q2_idx = whole_line.find('","', q2_idx+2)
+                            print(len(q1)+2)
+                        else:
+                            break
+                    q1.append(whole_line[q1_idx+1:q2_idx])
+                    q2.append(whole_line[q2_idx+3:-1])
+                    num += 1
+                whole_line = line
+            else:
+                whole_line += line
+        q1_idx = whole_line.find('"')
+        q2_idx = whole_line.find('","')
+        while whole_line[q2_idx-1] == '"':
+            if whole_line.find('","', q2_idx+2) > 0:
+                q2_idx = whole_line.find('","', q2_idx+2)
+                print(len(q1)+2)
+            else:
+                break
+        q1.append(whole_line[q1_idx+1:q2_idx])
+        q2.append(whole_line[q2_idx+3:-1])
+        assert num == 2345795
     return q1, q2
 
 
