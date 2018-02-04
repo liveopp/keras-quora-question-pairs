@@ -232,7 +232,7 @@ print('Maximum validation accuracy = {0:.4f} (epoch {1:d})'.format(max_val_acc, 
 
 # Evaluate the model with best validation accuracy on the test partition
 model.load_weights(MODEL_WEIGHTS_FILE)
-y_test = model.predict(X_test)
+y_test = model.predict([Q1_test, Q2_test])
 with open('submission.csv', 'w') as f:
     f.write('test_id,is_duplicate\n')
     for i, _y in enumerate(y_test):
