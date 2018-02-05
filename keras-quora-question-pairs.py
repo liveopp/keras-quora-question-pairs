@@ -36,10 +36,11 @@ EMBEDDING_DIM = 300
 SENTENCE_DIM = 100
 MODEL_JSON_FILE = 'question_pairs_model.json'
 MODEL_WEIGHTS_FILE = 'question_pairs_weights.h5'
+MODEL_JSON_FILE = 'question_pairs.json'
 VALIDATION_SPLIT = 0.1
 TEST_SPLIT = 0.1
 RNG_SEED = 13371447
-NB_EPOCHS = 15
+NB_EPOCHS = 10
 DROPOUT = 0.1
 BATCH_SIZE = 60
 OPTIMIZER = 'adam'
@@ -261,4 +262,3 @@ if __name__ == '__main__':
     # Evaluate the model with best validation accuracy on the test partition
     loss, accuracy = model.evaluate([Q1_test, Q2_test], y_test, verbose=0)
     print('Test loss = {0:.4f}, test accuracy = {1:.4f}'.format(loss, accuracy))
-
