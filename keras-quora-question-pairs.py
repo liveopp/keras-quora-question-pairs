@@ -257,7 +257,7 @@ if __name__ == '__main__':
     Q2_test = X_test[:, 1]
 
     model = build_model()
-    model = train(model)
+    model = train(model, X_train, y_train)
 
     # Evaluate the model with best validation accuracy on the test partition
     loss, accuracy = model.evaluate([Q1_test, Q2_test], y_test, verbose=0)
