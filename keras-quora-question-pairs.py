@@ -139,15 +139,15 @@ def build_model(is_load=False):
         if USE_CUDA:
             q1 = Bidirectional(CuDNNLSTM(SENTENCE_DIM, return_sequences=True), merge_mode='concat')(q1)
         else:
-            q1 = Bidirectional(LSTM(SENTENCE_DIM, return_sequences=True), merge_mode='sum')(q1)
-        q1 = Lambda(lambda x: K.mean(x, axis=1), output_shape=(SENTENCE_DIM, ))(q1)
+            q1 = Bidirectional(LSTM(SENTENCE_DIM, return_sequences=True), merge_mode='concat')(q1)
+        q1 = Lambda(lambda x: K.mean(x, axis=1), output_shape=(2*SENTENCE_DIM, ))(q1)
 
         q2 = embedding_layer(question2)
         if USE_CUDA:
             q2 = Bidirectional(CuDNNLSTM(SENTENCE_DIM, return_sequences=True), merge_mode='concat')(q2)
         else:
-            q2 = Bidirectional(LSTM(SENTENCE_DIM, return_sequences=True), merge_mode='sum')(q2)
-        q2 = Lambda(lambda x: K.mean(x, axis=1), output_shape=(SENTENCE_DIM, ))(q2)
+            q2 = Bidirectional(LSTM(SENTENCE_DIM, return_sequences=True), merge_mode='concat')(q2)
+        q2 = Lambda(lambda x: K.mean(x, axis=1), output_shape=(2*SENTENCE_DIM, ))(q2)
 
         distance = Lambda(lambda x: K.abs(x))(Subtract()([q1, q2]))
         angle = Multiply()([q1, q2])
