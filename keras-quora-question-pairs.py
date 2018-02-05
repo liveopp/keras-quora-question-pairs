@@ -63,7 +63,7 @@ def get_embedding_matrix(fname):
             vector = np.asarray(values[1:], dtype='float32')
             embedding_matrix[idx] = vector
             word_index[word] = idx
-    return word_index, embeddings_index
+    return word_index, embedding_matrix
 
 
 def texts_to_sequences(texts, word_index):
