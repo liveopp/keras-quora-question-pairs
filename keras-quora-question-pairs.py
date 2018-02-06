@@ -9,9 +9,7 @@ from keras.models import Model, model_from_json
 from keras.layers import Input, LSTM, CuDNNLSTM, Dense,\
     Bidirectional, Lambda, Multiply, Subtract, concatenate, Dropout, BatchNormalization
 from keras.layers.embeddings import Embedding
-from keras.regularizers import l2
 from keras.callbacks import Callback, ModelCheckpoint
-from keras.utils.data_utils import get_file
 from keras import backend as K
 from sklearn.model_selection import train_test_split
 
@@ -43,6 +41,7 @@ DROPOUT = 0.1
 BATCH_SIZE = 60
 OPTIMIZER = 'adam'
 USE_CUDA = True
+LOAD_MODEL = False
 
 
 def get_embedding_matrix(fname):
@@ -207,10 +206,14 @@ def build_model(is_load=False):
 
         model = Model(inputs=[question1, question2], outputs=is_duplicate)
         model.compile(loss='binary_crossentropy', optimizer=OPTIMIZER, metrics=['accuracy'])
+        # serialize model to JSON
+        model_json = model.to_json()
+        with open(MODEL_JSON_FILE, "w") as json_file:
+            json_file.write(model_json)
     else:
         # load json and create model
-        json_file = open()
-        loaded_model_json = json_file.read(MODEL_JSON_FILE)
+        json_file = open(MODEL_JSON_FILE)
+        loaded_model_json = json_file.read()
         json_file.close()
         model = model_from_json(loaded_model_json)
         # load weights into new model
@@ -262,8 +265,9 @@ if __name__ == '__main__':
     Q1_test = X_test[:, 0]
     Q2_test = X_test[:, 1]
 
-    model = build_model()
-    model = train(model, X_train, y_train)
+    model = build_model(is_load=LOAD_MODEL)
+    if not LOAD_MODEL:
+        model = train(model, X_train, y_train)
 
     # Evaluate the model with best validation accuracy on the test partition
     loss, accuracy = model.evaluate([Q1_test, Q2_test], y_test, verbose=0)
