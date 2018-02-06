@@ -165,9 +165,9 @@ def load_data():
     np.save(Q1_TRAINING_DATA_FILE, q1_data)
     np.save(Q2_TRAINING_DATA_FILE, q2_data)
     np.save(LABEL_TRAINING_DATA_FILE, labels)
-    np.save(WORD_EMBEDDING_MATRIX_FILE, word_embedding_matrix)
+    np.save(WORD_EMBEDDING_MATRIX_FILE, embedding_matrix)
     np.save(WORD_INDEX_FILE, word_index)
-    return q1_data, q2_data, labels, word_embedding_matrix
+    return q1_data, q2_data, labels, embedding_matrix
 
 
 def build_model(is_load=False):
