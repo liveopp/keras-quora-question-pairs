@@ -2,19 +2,18 @@ from __future__ import print_function
 
 import numpy as np
 import csv, datetime, time
-from os.path import expanduser, exists
+from os.path import exists
 from keras.preprocessing.text import text_to_word_sequence
 from keras.preprocessing.sequence import pad_sequences
 from keras.models import Model, model_from_json
 from keras.layers import Input, LSTM, CuDNNLSTM, Dense,\
     Bidirectional, Lambda, Multiply, Subtract, concatenate, Dropout, BatchNormalization
 from keras.layers.embeddings import Embedding
-from keras.callbacks import Callback, ModelCheckpoint
+from keras.callbacks import ModelCheckpoint
 from keras import backend as K
 from sklearn.model_selection import train_test_split
 
 # Initialize global variables
-KERAS_DATASETS_DIR = expanduser('~/.keras/datasets/')
 QUESTION_PAIRS_FILE_URL = 'http://qim.ec.quoracdn.net/quora_duplicate_questions.tsv'
 QUESTION_PAIRS_FILE = 'quora_duplicate_questions.tsv'
 TEST_QUESTION_PAIRS_FILE = 'test.csv'
@@ -26,7 +25,7 @@ Q2_TEST_DATA_FILE = 'q2_test.npy'
 LABEL_TRAINING_DATA_FILE = 'label_train.npy'
 WORD_EMBEDDING_MATRIX_FILE = 'word_embedding_matrix.npy'
 NB_WORDS_DATA_FILE = 'nb_words.json'
-MAX_NB_WORDS = 2196018
+MAX_NB_WORDS = 106686
 MAX_SEQUENCE_LENGTH = 25
 EMBEDDING_DIM = 300
 SENTENCE_DIM = 128
@@ -205,7 +204,6 @@ def build_model(is_load=False):
         is_duplicate = Dense(1, activation='sigmoid')(merged)
 
         model = Model(inputs=[question1, question2], outputs=is_duplicate)
-        model.compile(loss='binary_crossentropy', optimizer=OPTIMIZER, metrics=['accuracy'])
         # serialize model to JSON
         model_json = model.to_json()
         with open(MODEL_JSON_FILE, "w") as json_file:
@@ -219,6 +217,7 @@ def build_model(is_load=False):
         # load weights into new model
         model.load_weights(MODEL_WEIGHTS_FILE)
         print("Loaded model from disk")
+    model.compile(loss='binary_crossentropy', optimizer=OPTIMIZER, metrics=['accuracy'])
     return model
 
 
@@ -272,3 +271,4 @@ if __name__ == '__main__':
     # Evaluate the model with best validation accuracy on the test partition
     loss, accuracy = model.evaluate([Q1_test, Q2_test], y_test, verbose=0)
     print('Test loss = {0:.4f}, test accuracy = {1:.4f}'.format(loss, accuracy))
+    K.clear_session()
