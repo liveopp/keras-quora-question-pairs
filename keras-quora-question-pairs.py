@@ -34,7 +34,7 @@ EMBEDDING_DIM = 300
 SENTENCE_DIM = 128
 MODEL_JSON_FILE = 'question_pairs_model.json'
 MODEL_WEIGHTS_FILE = 'question_pairs_weights.h5'
-MODEL_JSON_FILE = 'question_pairs.json'
+WORD_INDEX_FILE = 'word_index.npy'
 VALIDATION_SPLIT = 0.1
 TEST_SPLIT = 0.1
 RNG_SEED = 13371447
@@ -85,6 +85,11 @@ def texts_to_sequences(texts, word_index):
 
 
 def read_test_csv(fname):
+    """
+    Read test data
+    :param fname:
+    :return:
+    """
     q1, q2 = [], []
     with open(fname, 'r') as f:
         f.readline()
@@ -120,6 +125,49 @@ def read_test_csv(fname):
         q2.append(whole_line[q2_idx+3:-1])
         assert num == 2345796
     return q1, q2
+
+
+def load_data():
+    assert exists(QUESTION_PAIRS_FILE) and exists(GLOVE_FILE)
+
+    print("Processing", QUESTION_PAIRS_FILE)
+
+    question1 = []
+    question2 = []
+    is_duplicate = []
+    with open(QUESTION_PAIRS_FILE, encoding='utf-8') as csvfile:
+        reader = csv.DictReader(csvfile, delimiter='\t')
+        for row in reader:
+            question1.append(row['question1'])
+            question2.append(row['question2'])
+            is_duplicate.append(row['is_duplicate'])
+
+    print('Train question pairs: %d' % len(question1))
+
+    print("Processing", TEST_QUESTION_PAIRS_FILE)
+
+    # Build tokenized word index
+    word_index, embedding_matrix = get_embedding_matrix(GLOVE_FILE)
+    question1_word_sequences = texts_to_sequences(question1, word_index)
+    question2_word_sequences = texts_to_sequences(question2, word_index)
+
+    print("Words in index: %d" % len(word_index))
+
+    # Prepare training data tensors
+    q1_data = pad_sequences(question1_word_sequences, maxlen=MAX_SEQUENCE_LENGTH)
+    q2_data = pad_sequences(question2_word_sequences, maxlen=MAX_SEQUENCE_LENGTH)
+    labels = np.array(is_duplicate, dtype=int)
+    print('Shape of question1 data tensor:', q1_data.shape)
+
+    print('Shape of label tensor:', labels.shape)
+
+    # Persist training and configuration data to files
+    np.save(Q1_TRAINING_DATA_FILE, q1_data)
+    np.save(Q2_TRAINING_DATA_FILE, q2_data)
+    np.save(LABEL_TRAINING_DATA_FILE, labels)
+    np.save(WORD_EMBEDDING_MATRIX_FILE, word_embedding_matrix)
+    np.save(WORD_INDEX_FILE, word_index)
+    return q1_data, q2_data, labels, word_embedding_matrix
 
 
 def build_model(is_load=False):
@@ -206,47 +254,7 @@ if __name__ == '__main__':
         labels = np.load(LABEL_TRAINING_DATA_FILE)
         word_embedding_matrix = np.load(WORD_EMBEDDING_MATRIX_FILE)
     else:
-        # Else download and extract questions pairs data
-        if not exists(KERAS_DATASETS_DIR + QUESTION_PAIRS_FILE):
-            get_file(QUESTION_PAIRS_FILE, QUESTION_PAIRS_FILE_URL)
-
-        print("Processing", QUESTION_PAIRS_FILE)
-
-        question1 = []
-        question2 = []
-        is_duplicate = []
-        with open(KERAS_DATASETS_DIR + QUESTION_PAIRS_FILE, encoding='utf-8') as csvfile:
-            reader = csv.DictReader(csvfile, delimiter='\t')
-            for row in reader:
-                question1.append(row['question1'])
-                question2.append(row['question2'])
-                is_duplicate.append(row['is_duplicate'])
-
-        print('Train question pairs: %d' % len(question1))
-
-        print("Processing", TEST_QUESTION_PAIRS_FILE)
-
-        # Build tokenized word index
-        word_index, word_embedding_matrix = get_embedding_matrix(GLOVE_FILE)
-        question1_word_sequences = texts_to_sequences(question1, word_index)
-        question2_word_sequences = texts_to_sequences(question2, word_index)
-
-        print("Words in index: %d" % len(word_index))
-
-        # Prepare training data tensors
-        q1_data = pad_sequences(question1_word_sequences, maxlen=MAX_SEQUENCE_LENGTH)
-        q2_data = pad_sequences(question2_word_sequences, maxlen=MAX_SEQUENCE_LENGTH)
-        labels = np.array(is_duplicate, dtype=int)
-        print('Shape of question1 data tensor:', q1_data.shape)
-
-        print('Shape of label tensor:', labels.shape)
-
-        # Persist training and configuration data to files
-        np.save(Q1_TRAINING_DATA_FILE, q1_data)
-        np.save(Q2_TRAINING_DATA_FILE, q2_data)
-        np.save(LABEL_TRAINING_DATA_FILE, labels)
-        np.save(WORD_EMBEDDING_MATRIX_FILE, word_embedding_matrix)
-
+        q1_data, q2_data, labels, word_embedding_matrix = load_data()
     # Partition the dataset into train and test sets
     X = np.stack((q1_data, q2_data), axis=1)
     y = labels
